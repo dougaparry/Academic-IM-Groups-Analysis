@@ -1,0 +1,15 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Load packages, clear environment, set seed, and turn scientific notation off
+```{r setup, message=FALSE, warning=FALSE}
+rm(list = ls())
+options(contrasts = c("contr.sum","contr.poly"), scipen = 12)
+set.seed(42)
+
+if (!require("pacman")) install.packages("pacman"); 
+library(pacman)
+pacman::p_load(tidyverse, dplyr,car, Hmisc, psych, TOSTER)
+```
