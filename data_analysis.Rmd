@@ -13,3 +13,162 @@ if (!require("pacman")) install.packages("pacman");
 library(pacman)
 pacman::p_load(tidyverse, dplyr,car, Hmisc, psych, TOSTER)
 ```
+
+# Import raw data
+
+Note: Must export detailed response info csv + incomplete responses
+```{r}
+raw_data <- read_csv("Raw_Data/raw_data.csv")
+```
+
+# Data cleaning
+
+## remove incomplete responses
+```{r}
+raw_data %>% tally() #initial number of responses:
+
+raw_data <- raw_data %>% filter(!is.na(Ended)) 
+
+raw_data %>% tally() #number of responses after removing incomplete
+```
+
+## Remove responses for which consent was not provided
+```{r}
+raw_data %>% tally() #initial number of responses:
+
+raw_data <- raw_data %>% filter(consent_consent_1_Column2 == "yes" & consent_consent_2_Column2 == "yes") 
+
+raw_data %>% tally() #number of responses after removing incomplete
+```
+
+Note final sample size
+```{r}
+raw_data %>% tally() 
+```
+
+## recode variables
+
+Produce age variable from birth year
+```{r}
+raw_data <- raw_data %>% 
+  mutate(age = as.numeric(2020 - as.numeric(birth_year))) %>% select(-birth_year)
+#remove birth_year column...
+```
+
+Clean study year variable
+```{r}
+raw_data<- raw_data %>% 
+  mutate(study_year = as.factor(case_when(year_study == "First Year" ~ "First Year",
+                                year_study == "Second Year" ~ "Second Year",
+                                year_study == "Third Year" ~ "Third Year",
+                                year_study == "Fourth Year" ~ "Fourth Year",
+                                TRUE ~ "Other"))) %>% select(-year_study)
+```
+
+## create scales
+
+Academic stress 
+(check if there is any reverse coding)
+(check if it should be 0 - 4 or 1 to 5?) [currently coded in checkbox as 0-4 can re-alias to 1 to 5]
+(columns written out rather than looping in case column nums change)
+```{r}
+raw_data <-raw_data %>% 
+  mutate(academic_stress_scale = (academic_stress_academic_stress_1_Column2 + academic_stress_academic_stress_2_Column2 + 
+                                    academic_stress_academic_stress_3_Column2 + academic_stress_academic_stress_4_Column2 + 
+                                    academic_stress_academic_stress_5_Column2 + academic_stress_academic_stress_6_Column2 + 
+                                    academic_stress_academic_stress_7_Column2 + academic_stress_academic_stress_8_Column2 + 
+                                    academic_stress_academic_stress_9_Column2 + academic_stress_academic_stress_10_Column2 + 
+                                    academic_stress_academic_stress_11_Column2 + academic_stress_academic_stress_12_Column2 + 
+                                    academic_stress_academic_stress_13_Column2 + academic_stress_academic_stress_14_Column2 + 
+                                    academic_stress_academic_stress_15_Column2 + academic_stress_academic_stress_16_Column2 + 
+                                    academic_stress_academic_stress_17_Column2 + academic_stress_academic_stress_18_Column2 + 
+                                    academic_stress_academic_stress_19_Column2 + academic_stress_academic_stress_20_Column2 + 
+                                    academic_stress_academic_stress_21_Column2)/21) 
+```
+
+## Export clean data
+Check variable types
+```{r}
+
+```
+
+Export dataset as csv and .rds
+```{r}
+saveRDS(raw_data, "Clean_Data/clean_data.rds")
+write_csv(raw_data, "Clean_Data/clean_data.csv")
+
+#rm(raw_data)
+```
+
+# Data Analysis 
+Import clean dataset
+```{r}
+data <- readRDS("Clean_Data/clean_data.rds")
+```
+
+
+## Describe sample
+
+mean and SD age:
+```{r}
+data %>% 
+  summarise(m = mean(age),
+            sd = sd(age))
+```
+
+Study Year proportions:
+```{r}
+data %>% 
+  group_by(study_year) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+Gender descriptives
+```{r}
+data %>% 
+  group_by(gender) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+Faculty descriptives: 
+```{r}
+data %>% 
+  group_by(faculty) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+## Descriptive statistics
+
+Academic performance
+```{r}
+data %>% 
+    summarise(median = median(academic_performance),
+              mean = mean(academic_performance),
+              sd = sd(academic_performance))
+```
+
+Academic stress
+```{r}
+data %>% 
+    summarise(median = median(academic_stress_scale),
+              mean = mean(academic_stress_scale),
+              sd = sd(academic_stress_scale))
+```
+
+Visualise scale
+```{r}
+data %>% ggplot(aes(x=academic_stress_scale)) + geom_histogram() + theme_bw()
+```
+
+
+##validity + reliability checks
+
+
+## analysis of proportions for likert scales
+
+## correlations
+
+
+

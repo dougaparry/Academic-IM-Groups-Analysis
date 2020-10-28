@@ -11,5 +11,9 @@ set.seed(42)
 
 if (!require("pacman")) install.packages("pacman"); 
 library(pacman)
-pacman::p_load(tidyverse, dplyr,car, Hmisc, psych, TOSTER)
+pacman::p_load(tidyverse, dplyr, pwr, TOSTER)
 ```
+
+# A priori power analysis for exploratory survey study to determine necessary sample size
+
+The power analysis will be based on the primary statistical anlaysis conducted in the study

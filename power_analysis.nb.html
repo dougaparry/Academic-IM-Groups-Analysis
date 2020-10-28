@@ -1753,19 +1753,25 @@ summary {
 <h1>Load packages, clear environment, set seed, and turn scientific notation off</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucm0obGlzdCA9IGxzKCkpXG5vcHRpb25zKGNvbnRyYXN0cyA9IGMoXCJjb250ci5zdW1cIixcImNvbnRyLnBvbHlcIiksIHNjaXBlbiA9IDEyKVxuc2V0LnNlZWQoNDIpXG5cbmlmICghcmVxdWlyZShcInBhY21hblwiKSkgaW5zdGFsbC5wYWNrYWdlcyhcInBhY21hblwiKTsgXG5saWJyYXJ5KHBhY21hbilcbnBhY21hbjo6cF9sb2FkKHRpZHl2ZXJzZSwgZHBseXIsY2FyLCBIbWlzYywgcHN5Y2gsIFRPU1RFUilcbmBgYCJ9 -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucm0obGlzdCA9IGxzKCkpXG5vcHRpb25zKGNvbnRyYXN0cyA9IGMoXCJjb250ci5zdW1cIixcImNvbnRyLnBvbHlcIiksIHNjaXBlbiA9IDEyKVxuc2V0LnNlZWQoNDIpXG5cbmlmICghcmVxdWlyZShcInBhY21hblwiKSkgaW5zdGFsbC5wYWNrYWdlcyhcInBhY21hblwiKTsgXG5saWJyYXJ5KHBhY21hbilcbnBhY21hbjo6cF9sb2FkKHRpZHl2ZXJzZSwgZHBseXIsIHB3ciwgVE9TVEVSKVxuYGBgIn0= -->
 <pre class="r"><code>rm(list = ls())
 options(contrasts = c(&quot;contr.sum&quot;,&quot;contr.poly&quot;), scipen = 12)
 set.seed(42)
 
 if (!require(&quot;pacman&quot;)) install.packages(&quot;pacman&quot;); 
 library(pacman)
-pacman::p_load(tidyverse, dplyr,car, Hmisc, psych, TOSTER)</code></pre>
+pacman::p_load(tidyverse, dplyr, pwr, TOSTER)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="a-priori-power-analysis-for-exploratory-survey-study-to-determine-necessary-sample-size" class="section level1">
+<h1>A priori power analysis for exploratory survey study to determine necessary sample size</h1>
+<p>The power analysis will be based on the primary statistical anlaysis conducted in the study</p>
+<!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiUG93ZXIgQW5hbHlzaXMiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCiMgTG9hZCBwYWNrYWdlcywgY2xlYXIgZW52aXJvbm1lbnQsIHNldCBzZWVkLCBhbmQgdHVybiBzY2llbnRpZmljIG5vdGF0aW9uIG9mZgpgYGB7ciBzZXR1cCwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0Kcm0obGlzdCA9IGxzKCkpCm9wdGlvbnMoY29udHJhc3RzID0gYygiY29udHIuc3VtIiwiY29udHIucG9seSIpLCBzY2lwZW4gPSAxMikKc2V0LnNlZWQoNDIpCgppZiAoIXJlcXVpcmUoInBhY21hbiIpKSBpbnN0YWxsLnBhY2thZ2VzKCJwYWNtYW4iKTsgCmxpYnJhcnkocGFjbWFuKQpwYWNtYW46OnBfbG9hZCh0aWR5dmVyc2UsIGRwbHlyLGNhciwgSG1pc2MsIHBzeWNoLCBUT1NURVIpCmBgYAo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiUG93ZXIgQW5hbHlzaXMiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCiMgTG9hZCBwYWNrYWdlcywgY2xlYXIgZW52aXJvbm1lbnQsIHNldCBzZWVkLCBhbmQgdHVybiBzY2llbnRpZmljIG5vdGF0aW9uIG9mZgpgYGB7ciBzZXR1cCwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0Kcm0obGlzdCA9IGxzKCkpCm9wdGlvbnMoY29udHJhc3RzID0gYygiY29udHIuc3VtIiwiY29udHIucG9seSIpLCBzY2lwZW4gPSAxMikKc2V0LnNlZWQoNDIpCgppZiAoIXJlcXVpcmUoInBhY21hbiIpKSBpbnN0YWxsLnBhY2thZ2VzKCJwYWNtYW4iKTsgCmxpYnJhcnkocGFjbWFuKQpwYWNtYW46OnBfbG9hZCh0aWR5dmVyc2UsIGRwbHlyLCBwd3IsIFRPU1RFUikKYGBgCgojIEEgcHJpb3JpIHBvd2VyIGFuYWx5c2lzIGZvciBleHBsb3JhdG9yeSBzdXJ2ZXkgc3R1ZHkgdG8gZGV0ZXJtaW5lIG5lY2Vzc2FyeSBzYW1wbGUgc2l6ZQoKVGhlIHBvd2VyIGFuYWx5c2lzIHdpbGwgYmUgYmFzZWQgb24gdGhlIHByaW1hcnkgc3RhdGlzdGljYWwgYW5sYXlzaXMgY29uZHVjdGVkIGluIHRoZSBzdHVkeQ==</div>
 
 
 
