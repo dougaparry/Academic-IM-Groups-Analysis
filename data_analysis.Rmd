@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "AIMG Survey Data Analysis"
 output: html_notebook
 ---
 
@@ -11,48 +11,40 @@ set.seed(42)
 
 if (!require("pacman")) install.packages("pacman"); 
 library(pacman)
-pacman::p_load(tidyverse, dplyr,car, Hmisc, psych, TOSTER)
+pacman::p_load(tidyverse, dplyr,car, Hmisc, psych, TOSTER, lavaan, forcats, MuMIn, likert, QuantPsyc, lavaanPlot, semPlot)
 ```
 
 # Import raw data
-
 Note: Must export detailed response info csv + incomplete responses
-```{r}
+```{r message=FALSE, warning=FALSE}
 raw_data <- read_csv("Raw_Data/raw_data.csv")
 ```
 
 # Data cleaning
 
-## remove incomplete responses
+## remove incomplete responses 
+(using the `Ended` variable to determine if the survey was submitted)
 ```{r}
 raw_data %>% tally() #initial number of responses:
-
 raw_data <- raw_data %>% filter(!is.na(Ended)) 
-
-raw_data %>% tally() #number of responses after removing incomplete
+raw_data %>% tally() #number of responses after removing incomplete:
 ```
 
 ## Remove responses for which consent was not provided
 ```{r}
 raw_data %>% tally() #initial number of responses:
-
 raw_data <- raw_data %>% filter(consent_consent_1_Column2 == "yes" & consent_consent_2_Column2 == "yes") 
-
 raw_data %>% tally() #number of responses after removing incomplete
 ```
 
-Note final sample size
-```{r}
-raw_data %>% tally() 
-```
-
-## recode variables
+## Demographic variable recoding and descriptive statistics
 
 Produce age variable from birth year
 ```{r}
 raw_data <- raw_data %>% 
-  mutate(age = as.numeric(2020 - as.numeric(birth_year))) %>% select(-birth_year)
-#remove birth_year column...
+  mutate(age = as.numeric(2020 - as.numeric(birth_year))) %>% dplyr::select(-birth_year)
+
+raw_data %>% summarise(m = mean(age), sd = sd(age))
 ```
 
 Clean study year variable
@@ -62,18 +54,57 @@ raw_data<- raw_data %>%
                                 year_study == "Second Year" ~ "Second Year",
                                 year_study == "Third Year" ~ "Third Year",
                                 year_study == "Fourth Year" ~ "Fourth Year",
-                                TRUE ~ "Other"))) %>% select(-year_study)
+                                TRUE ~ "Other"))) %>% dplyr::select(-year_study)
+
+raw_data %>% 
+  group_by(study_year) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
 ```
 
-## create scales
+Gender descriptive statistics
+*****note, will need to recode to numeric for the SEM (look up what needs to be done)******
+```{r}
+raw_data <- raw_data %>% 
+  mutate(gender = as.factor(case_when(gender == "female" ~"female",
+                                      gender == "male" ~ "male",
+                                      TRUE ~ "other")))
+raw_data %>% 
+  group_by(gender) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+Faculty descriptive statistics 
+```{r}
+raw_data<- raw_data %>% 
+  mutate(faculty = as.factor(faculty))
 
-Academic stress 
-(check if there is any reverse coding)
-(check if it should be 0 - 4 or 1 to 5?) [currently coded in checkbox as 0-4 can re-alias to 1 to 5]
-(columns written out rather than looping in case column nums change)
+raw_data %>% 
+  group_by(faculty) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+Remove extraneous columns now that checks are complete
+```{r}
+raw_data <- raw_data %>% dplyr::select(-c(ResponseID, ResponseGuid, Started, Ended, TotalTime, LastEdit, 
+                                   IP, Language, UniqueIdentifier, Invitee, Score, 
+                                   consent_consent_1_Column2, consent_consent_2_Column2))
+```
+
+## Create and test scales for dependent variables
+
+### Academic stress scale
+
+https://doi.org/10.1375/ajgc.19.1.56 
+
+Responses are coded: 1 - 5, no reverse coding, 21 items
+"Items are summed for subscale scores and subscales are summed for a total LASRS stress response score."
+"Higher scores indicate a greater stress response."
+
+(columns written out rather than looping in case column numbers change)
 ```{r}
 raw_data <-raw_data %>% 
-  mutate(academic_stress_scale = (academic_stress_academic_stress_1_Column2 + academic_stress_academic_stress_2_Column2 + 
+  mutate(academic_stress_scale = academic_stress_academic_stress_1_Column2 + academic_stress_academic_stress_2_Column2 + 
                                     academic_stress_academic_stress_3_Column2 + academic_stress_academic_stress_4_Column2 + 
                                     academic_stress_academic_stress_5_Column2 + academic_stress_academic_stress_6_Column2 + 
                                     academic_stress_academic_stress_7_Column2 + academic_stress_academic_stress_8_Column2 + 
@@ -83,14 +114,332 @@ raw_data <-raw_data %>%
                                     academic_stress_academic_stress_15_Column2 + academic_stress_academic_stress_16_Column2 + 
                                     academic_stress_academic_stress_17_Column2 + academic_stress_academic_stress_18_Column2 + 
                                     academic_stress_academic_stress_19_Column2 + academic_stress_academic_stress_20_Column2 + 
-                                    academic_stress_academic_stress_21_Column2)/21) 
+                                    academic_stress_academic_stress_21_Column2) 
+```
+
+Cronbach's alpha for internal consistency
+```{r}
+raw_data %>% 
+  dplyr::select(academic_stress_academic_stress_1_Column2, academic_stress_academic_stress_2_Column2, 
+         academic_stress_academic_stress_3_Column2, academic_stress_academic_stress_4_Column2, 
+         academic_stress_academic_stress_5_Column2, academic_stress_academic_stress_6_Column2, 
+         academic_stress_academic_stress_7_Column2, academic_stress_academic_stress_8_Column2, 
+         academic_stress_academic_stress_9_Column2, academic_stress_academic_stress_10_Column2, 
+         academic_stress_academic_stress_11_Column2, academic_stress_academic_stress_12_Column2, 
+         academic_stress_academic_stress_13_Column2, academic_stress_academic_stress_14_Column2, 
+         academic_stress_academic_stress_15_Column2, academic_stress_academic_stress_16_Column2, 
+         academic_stress_academic_stress_17_Column2, academic_stress_academic_stress_18_Column2,
+         academic_stress_academic_stress_19_Column2, academic_stress_academic_stress_20_Column2,  
+         academic_stress_academic_stress_21_Column2) %>% 
+  alpha()
+```
+
+Produce academic stress subscales
+```{r}
+raw_data <- raw_data %>% 
+  mutate(AS_affective = academic_stress_academic_stress_20_Column2 + 
+           academic_stress_academic_stress_19_Column2 + 
+           academic_stress_academic_stress_6_Column2 +
+           academic_stress_academic_stress_12_Column2,
+         AS_behavioural = academic_stress_academic_stress_3_Column2 +
+           academic_stress_academic_stress_11_Column2 +
+           academic_stress_academic_stress_17_Column2 +
+           academic_stress_academic_stress_16_Column2 +
+           academic_stress_academic_stress_1_Column2 +
+           academic_stress_academic_stress_8_Column2 +
+           academic_stress_academic_stress_2_Column2 +
+           academic_stress_academic_stress_7_Column2,
+         AS_physiological = academic_stress_academic_stress_9_Column2 +
+           academic_stress_academic_stress_21_Column2 +
+           academic_stress_academic_stress_14_Column2 +
+           academic_stress_academic_stress_15_Column2 +
+           academic_stress_academic_stress_10_Column2,
+         AS_Cognitive = academic_stress_academic_stress_18_Column2 +
+           academic_stress_academic_stress_4_Column2 +
+           academic_stress_academic_stress_13_Column2 +
+           academic_stress_academic_stress_5_Column2)
+```
+
+Remove unnecessary columns
+```{r}
+raw_data <- raw_data %>% dplyr::select(-c(academic_stress_academic_stress_1_Column2, academic_stress_academic_stress_2_Column2, 
+         academic_stress_academic_stress_3_Column2, academic_stress_academic_stress_4_Column2, 
+         academic_stress_academic_stress_5_Column2, academic_stress_academic_stress_6_Column2, 
+         academic_stress_academic_stress_7_Column2, academic_stress_academic_stress_8_Column2, 
+         academic_stress_academic_stress_9_Column2, academic_stress_academic_stress_10_Column2, 
+         academic_stress_academic_stress_11_Column2, academic_stress_academic_stress_12_Column2, 
+         academic_stress_academic_stress_13_Column2, academic_stress_academic_stress_14_Column2, 
+         academic_stress_academic_stress_15_Column2, academic_stress_academic_stress_16_Column2, 
+         academic_stress_academic_stress_17_Column2, academic_stress_academic_stress_18_Column2,
+         academic_stress_academic_stress_19_Column2, academic_stress_academic_stress_20_Column2,  
+         academic_stress_academic_stress_21_Column2))
+```
+
+### Learning Community Scale
+Responses are coded: 1 - 5, no reverse coding, and aggregated
+```{r}
+raw_data <- raw_data %>% 
+  mutate(LCS = (EQ_LCS_1_Column2+EQ_LCS_2_Column2+EQ_LCS_3_Column2+EQ_LCS_4_Column2+EQ_LCS_5_Column2)/5)
+```
+
+Cronbach's alpha
+```{r}
+raw_data %>% dplyr::select(EQ_LCS_1_Column2, EQ_LCS_2_Column2, 
+                    EQ_LCS_3_Column2, EQ_LCS_4_Column2, 
+                    EQ_LCS_5_Column2) %>% alpha()
+```
+
+### Good Teaching Scale 
+Responses are coded: 1 - 5, no reverse coding, and aggregated
+```{r}
+raw_data <- raw_data %>% 
+  mutate(GTS = (EQ_GTS_1_Column2+EQ_GTS_2_Column2+EQ_GTS_3_Column2+EQ_GTS_4_Column2+EQ_GTS_5_Column2)/5)
+```
+
+```{r}
+raw_data %>% dplyr::select(EQ_GTS_1_Column2, EQ_GTS_2_Column2, 
+                    EQ_GTS_3_Column2, EQ_GTS_4_Column2, 
+                    EQ_GTS_5_Column2) %>% alpha()
+```
+
+### Overall Satisfaction Index
+
+```{r}
+raw_data <- raw_data %>% 
+  mutate(OSI = as.factor(EQ_OSI_Column2)) %>% 
+  mutate(OSI = fct_relevel(OSI, c("1","2","3","4","5")))
+```
+
+Remove unnecessary columns
+```{r}
+raw_data <- raw_data %>% dplyr::select(-c(EQ_LCS_1_Column2, EQ_LCS_2_Column2, 
+                    EQ_LCS_3_Column2, EQ_LCS_4_Column2, 
+                    EQ_LCS_5_Column2, EQ_GTS_1_Column2, EQ_GTS_2_Column2, 
+                    EQ_GTS_3_Column2, EQ_GTS_4_Column2, 
+                    EQ_GTS_5_Column2, EQ_OSI_Column2))
+```
+
+## Descriptive statistics for Dependent variables
+
+Note, OSI variable is categorical (ordinal) not numeric
+```{r}
+raw_data %>% 
+  dplyr::select(academic_performance, 
+                    academic_stress_scale, AS_affective, AS_behavioural, AS_physiological, AS_Cognitive,
+                    LCS, GTS, OSI) %>% 
+  psych::describe()
+```
+
+## Produce AIMGs Usage scales
+
+### Produce proportion values
+
+First set the module proportion to factor and create new variables
+
+```{r}
+raw_data<-raw_data %>% 
+  mutate(use_proportion_formal_AIMG = as.factor(Group_Use_formal_AIMG_extent_Column2),
+         use_proportion_class_AIMG = as.factor(Group_Use_class_AIMG_extent_Column2),
+         use_proportion_study_AIMG = as.factor(Group_Use_group_AIMG_extent_Column2)) %>% 
+  dplyr::select(-c(Group_Use_formal_AIMG_extent_Column2,Group_Use_class_AIMG_extent_Column2,Group_Use_group_AIMG_extent_Column2))
+```
+
+Recode to numeric from raw responses
+```{r}
+raw_data <- raw_data %>% 
+  mutate(use_proportion_formal_AIMG  = case_when(use_proportion_formal_AIMG == "In none of my modules" ~0,
+                                              use_proportion_formal_AIMG == "In less than half of my modules" ~1,
+                                              use_proportion_formal_AIMG == "In about half of my modules" ~2,
+                                              use_proportion_formal_AIMG == "In more than half of my modules" ~3,
+                                              use_proportion_formal_AIMG == "In all of my modules" ~4)) %>% 
+  mutate(use_proportion_class_AIMG  = case_when(use_proportion_class_AIMG == "In none of my modules" ~0,
+                                              use_proportion_class_AIMG == "In less than half of my modules" ~1,
+                                              use_proportion_class_AIMG == "In about half of my modules" ~2,
+                                              use_proportion_class_AIMG == "In more than half of my modules" ~3,
+                                              use_proportion_class_AIMG == "In all of my modules" ~4)) %>% 
+  mutate(use_proportion_study_AIMG  = case_when(use_proportion_study_AIMG == "In none of my modules" ~0,
+                                              use_proportion_study_AIMG == "In less than half of my modules" ~1,
+                                              use_proportion_study_AIMG == "In about half of my modules" ~2,
+                                              use_proportion_study_AIMG == "In more than half of my modules" ~3,
+                                              use_proportion_study_AIMG == "In all of my modules" ~4))
+```
+
+### Produce frequency scales
+Can consider Cronbach's alpha for these (not for proportion or overall)
+
+#### Class groups frequency (recode and combine)
+
+Note: never = 0; a couple of times per semester = 0.25; a couple of times per week = 0.5; daily = 1; multiple times per day = 2; NA = 0 (because default to NA if not selected)
+
+```{r}
+raw_data<- raw_data %>% 
+  mutate(class_read_frequency = case_when(`_class_AIMG_read_Column2` == "never" ~ 0,
+                                          `_class_AIMG_read_Column2` == "a couple of times per semester" ~ 0.25,
+                                          `_class_AIMG_read_Column2` == "a couple of times per week" ~ 0.5,
+                                          `_class_AIMG_read_Column2` == "daily" ~ 1,
+                                          `_class_AIMG_read_Column2` == "multiple times per day" ~ 2,
+                                          is.na(`_class_AIMG_read_Column2`) ~ 0)) %>% 
+  mutate(class_post_frequency = case_when(`_class_AIMG_post_Column2` == "never" ~ 0,
+                                          `_class_AIMG_post_Column2` == "a couple of times per semester" ~ 0.25,
+                                          `_class_AIMG_post_Column2` == "a couple of times per week" ~ 0.5,
+                                          `_class_AIMG_post_Column2` == "daily" ~ 1,
+                                          `_class_AIMG_post_Column2` == "multiple times per day" ~ 2,
+                                          is.na(`_class_AIMG_post_Column2`) ~ 0)) %>% 
+  mutate(class_share_frequency = case_when(`_class_AIMG_share_Column2` == "never" ~ 0,
+                                          `_class_AIMG_share_Column2` == "a couple of times per semester" ~ 0.25,
+                                          `_class_AIMG_share_Column2` == "a couple of times per week" ~ 0.5,
+                                          `_class_AIMG_share_Column2` == "daily" ~ 1,
+                                          `_class_AIMG_share_Column2` == "multiple times per day" ~ 2,
+                                          is.na(`_class_AIMG_share_Column2`) ~ 0))  %>% 
+  dplyr::select(-c(`_class_AIMG_read_Column2`, `_class_AIMG_post_Column2`, `_class_AIMG_share_Column2`))
+```
+
+Produce combined frequency variable
+```{r}
+raw_data<- raw_data %>% 
+  mutate(frequency_class = as.numeric(class_read_frequency+class_post_frequency+class_share_frequency))
+```
+
+#### Formal group frequency (recode and combine)
+
+```{r}
+raw_data<- raw_data %>% 
+  mutate(formal_read_frequency = case_when(`_formal_AIMG_read_Column2` == "never" ~ 0,
+                                          `_formal_AIMG_read_Column2` == "a couple of times per semester" ~ 0.25,
+                                          `_formal_AIMG_read_Column2` == "a couple of times per week" ~ 0.5,
+                                          `_formal_AIMG_read_Column2` == "daily" ~ 1,
+                                          `_formal_AIMG_read_Column2` == "multiple times per day" ~ 2,
+                                          is.na(`_formal_AIMG_read_Column2`) ~ 0)) %>% 
+  mutate(formal_post_frequency = case_when(`_formal_AIMG_post_Column2` == "never" ~ 0,
+                                          `_formal_AIMG_post_Column2` == "a couple of times per semester" ~ 0.25,
+                                          `_formal_AIMG_post_Column2` == "a couple of times per week" ~ 0.5,
+                                          `_formal_AIMG_post_Column2` == "daily" ~ 1,
+                                          `_formal_AIMG_post_Column2` == "multiple times per day" ~ 2,
+                                          is.na(`_formal_AIMG_post_Column2`) ~ 0)) %>% 
+  mutate(formal_share_frequency = case_when(`_formal_AIMG_share_Column2` == "never" ~ 0,
+                                          `_formal_AIMG_share_Column2` == "a couple of times per semester" ~ 0.25,
+                                          `_formal_AIMG_share_Column2` == "a couple of times per week" ~ 0.5,
+                                          `_formal_AIMG_share_Column2` == "daily" ~ 1,
+                                          `_formal_AIMG_share_Column2` == "multiple times per day" ~ 2,
+                                          is.na(`_formal_AIMG_share_Column2`) ~ 0))  %>% 
+  dplyr::select(-c(`_formal_AIMG_read_Column2`, `_formal_AIMG_post_Column2`, `_formal_AIMG_share_Column2`))
+```
+
+Produce combined frequency variable
+```{r}
+raw_data<- raw_data %>% 
+  mutate(frequency_formal = as.numeric(formal_read_frequency+formal_post_frequency+formal_share_frequency))
+```
+
+#### Study-group frequency (recode and combine)
+
+```{r}
+raw_data<- raw_data %>% 
+  mutate(study_read_frequency = case_when(`_group_AIMG_read_Column2` == "never" ~ 0,
+                                          `_group_AIMG_read_Column2` == "a couple of times per semester" ~ 0.25,
+                                          `_group_AIMG_read_Column2` == "a couple of times per week" ~ 0.5,
+                                          `_group_AIMG_read_Column2` == "daily" ~ 1,
+                                          `_group_AIMG_read_Column2` == "multiple times per day" ~ 2,
+                                          is.na(`_group_AIMG_read_Column2`) ~ 0)) %>% 
+  mutate(study_post_frequency = case_when(`_group_AIMG_post_Column2` == "never" ~ 0,
+                                          `_group_AIMG_post_Column2` == "a couple of times per semester" ~ 0.25,
+                                          `_group_AIMG_post_Column2` == "a couple of times per week" ~ 0.5,
+                                          `_group_AIMG_post_Column2` == "daily" ~ 1,
+                                          `_group_AIMG_post_Column2` == "multiple times per day" ~ 2,
+                                          is.na(`_group_AIMG_post_Column2`) ~ 0)) %>% 
+  mutate(study_share_frequency = case_when(`_group_AIMG_share_Column2` == "never" ~ 0,
+                                          `_group_AIMG_share_Column2` == "a couple of times per semester" ~ 0.25,
+                                          `_group_AIMG_share_Column2` == "a couple of times per week" ~ 0.5,
+                                          `_group_AIMG_share_Column2` == "daily" ~ 1,
+                                          `_group_AIMG_share_Column2` == "multiple times per day" ~ 2,
+                                          is.na(`_group_AIMG_share_Column2`) ~ 0))  %>% 
+  dplyr::select(-c(`_group_AIMG_read_Column2`, `_group_AIMG_post_Column2`, `_group_AIMG_share_Column2`))
+```
+
+Produce combined frequency variable
+```{r}
+raw_data<- raw_data %>% 
+  mutate(frequency_study = as.numeric(study_read_frequency+study_post_frequency+study_share_frequency))
+```
+
+### Combine to produce overall participation scales
+
+```{r}
+raw_data <- raw_data %>% 
+  mutate(class_overall_participation = as.numeric(frequency_class * use_proportion_class_AIMG),
+         formal_overall_participation = as.numeric(frequency_formal * use_proportion_formal_AIMG),
+         study_overall_participation = as.numeric(frequency_study * use_proportion_study_AIMG))
+```
+
+# This can be done seperately and returned to later (leaving for now to move on with main analysis planning...)
+
+(can be done in the main dataframe just doing seperately for now...)
+
+## Create seperate datasets for the use purposes and motivations variables
+
+```{r}
+formal_uses_data <- raw_data %>% dplyr::select(starts_with("These groups are used")) %>% dplyr::select(contains("formal"))
+class_uses_data <- raw_data %>% dplyr::select(starts_with("These groups are used")) %>% dplyr::select(contains("class"))
+group_uses_data <- raw_data %>% dplyr::select(starts_with("These groups are used")) %>% dplyr::select(contains("to_group"))
+
+formal_uses_data <- formal_uses_data %>% 
+  add_column(group_type = "formal")
+
+class_uses_data <- class_uses_data %>% 
+  add_column(group_type = "class")
+
+group_uses_data <- group_uses_data %>% 
+  add_column(group_type = "group")
+
+formal_uses_data <- formal_uses_data %>% 
+  mutate(communicate_administrative = `These groups are used to_formal_communicate_administrative_Column2`,
+         discuss_content = `These groups are used to_formal_discuss_content_Column2`,
+         share_notes = `These groups are used to_formal_share_notes_Column2`,
+         share_answers = `These groups are used to_formal_share_answers_Column2`,
+         coordinate_groupwork = `These groups are used to_formal_coordinate_group_Column2`,
+         encourage = `These groups are used to_formal_encourage_Column2`,
+         share_non_academic = `These groups are used to_formal_share_non_academic_Column2`) %>% 
+  dplyr::select(-c(`These groups are used to_formal_communicate_administrative_Column2`, `These groups are used to_formal_discuss_content_Column2`,
+            `These groups are used to_formal_share_notes_Column2`, `These groups are used to_formal_share_answers_Column2`,
+            `These groups are used to_formal_coordinate_group_Column2`, `These groups are used to_formal_encourage_Column2`,
+            `These groups are used to_formal_share_non_academic_Column2`))
+
+class_uses_data <- class_uses_data %>% 
+  mutate(communicate_administrative = `These groups are used to_class_communicate_administrative_Column2`,
+         discuss_content = `These groups are used to_class_discuss_academic_Column2`,
+         share_notes = `These groups are used to_class_share_notes_Column2`,
+         share_answers = `These groups are used to_class_share_answers_Column2`,
+         coordinate_groupwork = `These groups are used to_class_coordinate_group_Column2`,
+         encourage = `These groups are used to_class_encourage_Column2`,
+         share_non_academic = `These groups are used to_class_share_non_academic_Column2`) %>% 
+  dplyr::select(-c(`These groups are used to_class_communicate_administrative_Column2`, `These groups are used to_class_discuss_academic_Column2`,
+            `These groups are used to_class_share_notes_Column2`, `These groups are used to_class_share_answers_Column2`,
+            `These groups are used to_class_coordinate_group_Column2`, `These groups are used to_class_encourage_Column2`,
+            `These groups are used to_class_share_non_academic_Column2`))
+
+group_uses_data <- group_uses_data %>% 
+  mutate(communicate_administrative = `These groups are used to_group_communicate_administrative_Column2`,
+         discuss_content = `These groups are used to_group_discuss_academic_Column2`,
+         share_notes = `These groups are used to_group_share_notes_Column2`,
+         share_answers = `These groups are used to_group_share_answers_Column2`,
+         coordinate_groupwork = `These groups are used to_group_coordinate_group_Column2`,
+         encourage = `These groups are used to_group_encourage_Column2`,
+         share_non_academic = `These groups are used to_group_share_non_academic_Column2`) %>% 
+  dplyr::select(-c(`These groups are used to_group_communicate_administrative_Column2`, `These groups are used to_group_discuss_academic_Column2`,
+            `These groups are used to_group_share_notes_Column2`, `These groups are used to_group_share_answers_Column2`,
+            `These groups are used to_group_coordinate_group_Column2`, `These groups are used to_group_encourage_Column2`,
+            `These groups are used to_group_share_non_academic_Column2`))
+
+raw_data_purposes <- rbind(formal_uses_data, class_uses_data, group_uses_data) 
+
+# Can do the below for each purpose to get the % of respondents in each group type who responded in each way
+# For visualisation can use the likert package which will make it easier to do all in one go (leaving for now...)
+raw_data_purposes %>% group_by(group_type, communicate_administrative) %>% 
+  summarise(n = n()) %>%
+  mutate(freq = n / sum(n))
 ```
 
 ## Export clean data
-Check variable types
-```{r}
-
-```
 
 Export dataset as csv and .rds
 ```{r}
@@ -99,76 +448,157 @@ write_csv(raw_data, "Clean_Data/clean_data.csv")
 
 #rm(raw_data)
 ```
-
 # Data Analysis 
-Import clean dataset
-```{r}
-data <- readRDS("Clean_Data/clean_data.rds")
-```
-
-
-## Describe sample
-
-mean and SD age:
-```{r}
-data %>% 
-  summarise(m = mean(age),
-            sd = sd(age))
-```
-
-Study Year proportions:
-```{r}
-data %>% 
-  group_by(study_year) %>% 
-  summarise(n=n()) %>% 
-  mutate(perc = n/sum(n)*100)
-```
-Gender descriptives
-```{r}
-data %>% 
-  group_by(gender) %>% 
-  summarise(n=n()) %>% 
-  mutate(perc = n/sum(n)*100)
-```
-
-Faculty descriptives: 
-```{r}
-data %>% 
-  group_by(faculty) %>% 
-  summarise(n=n()) %>% 
-  mutate(perc = n/sum(n)*100)
-```
-
-## Descriptive statistics
-
-Academic performance
-```{r}
-data %>% 
-    summarise(median = median(academic_performance),
-              mean = mean(academic_performance),
-              sd = sd(academic_performance))
-```
-
-Academic stress
-```{r}
-data %>% 
-    summarise(median = median(academic_stress_scale),
-              mean = mean(academic_stress_scale),
-              sd = sd(academic_stress_scale))
-```
-
-Visualise scale
-```{r}
-data %>% ggplot(aes(x=academic_stress_scale)) + geom_histogram() + theme_bw()
-```
-
-
-##validity + reliability checks
-
 
 ## analysis of proportions for likert scales
 
-## correlations
+(return to this later)
+
+```{r}
+# Modules_AIMG <- as.data.frame(data %>% 
+#                                 dplyr::select(use_modules_formal_AIMG, use_modules_class_AIMG, use_modules_study_AIMG))
+# 
+# modules_likert_data<-likert::likert(Modules_AIMG)
+# print(modules_likert_data) #print percentage for each option
+```
+Visualise proportions (rough figure can polish later)
+
+```{r}
+plot(modules_likert_data)
+```
+
+*****Come back to the section above*****
+
+## correlation matrix
+```{r}
+raw_data %>% 
+  dplyr::select(frequency_class, frequency_formal, frequency_study, 
+         use_proportion_class_AIMG, use_proportion_formal_AIMG, use_proportion_study_AIMG,
+         class_overall_participation, formal_overall_participation, study_overall_participation,
+         academic_performance, academic_stress_scale, GTS, LCS, OSI) %>% 
+  as.matrix() %>% 
+  rcorr(type = "spearman")
+```
+
+## Modeling
+
+### Regression analysis with control variables
+
+Multiple regression models will be produced to determine the predictive capacity of the AIMG participation variables over academic performance, academic stress and subjects’ perceptions of education quality and (operationalised through the good-teaching scale, learning community scale, and overall satisfaction index)indiinvolvement.
+
+
+Controlling for gender, faculty, and study-year. [report controlled for but not in table]
+
+predicting AP
+```{r}
+AP_model <- lm(academic_performance ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_stress_scale + LCS+GTS + age + faculty + study_year + gender, data = raw_data)
+summary(AP_model)
+
+round(MuMIn::std.coef(AP_model, partial.sd = TRUE), 2) #to get standardised..
+
+#standardise coefficients
+#AP_model_standardised_ceofs <- lm.beta(AP_model) #won't work for the categorical coefficients - figure out
+#AP_model_standardised_ceofs
+```
 
 
 
+
+
+Predicting AS
+```{r}
+AS_model <- lm(academic_stress_scale ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_performance + LCS+GTS+ age + faculty + study_year + gender, data = raw_data)
+summary(AS_model)
+
+#standardise coefficients
+AS_model_standardised_ceofs <- lm.beta(AS_model)
+AS_model_standardised_ceofs
+```
+
+Predicting LCS
+```{r}
+LCS_model <- lm(LCS ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_performance + academic_stress_scale+GTS+ age + faculty + study_year + gender, data = raw_data)
+summary(LCS_model)
+
+#standardise coefficients
+LCS_model_standardised_ceofs <- lm.beta(LCS_model)
+LCS_model_standardised_ceofs
+```
+
+Predicting GTS
+```{r}
+GTS_model <- lm(GTS ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_performance + academic_stress_scale+LCS+ age + faculty + study_year + gender, data = raw_data)
+summary(GTS_model)
+
+#standardise coefficients
+GTS_model_standardised_ceofs <- lm.beta(GTS_model)
+GTS_model_standardised_ceofs
+```
+
+Predicting OSI: ordinal logistic regression
+
+Below we use the polr command from the MASS package to estimate an ordered logistic regression model. (proportional odds logistic regression)
+
+See below for interpretation of coefficients
+```{r}
+OSI_model <- polr(OSI ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_performance + academic_stress_scale+LCS +GTS + age + faculty + study_year + gender, data = raw_data, Hess=TRUE)
+summary(OSI_model)
+```
+
+To get p-values for coefficients
+```{r}
+ctable <- coef(summary(OSI_model))
+p <- pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2
+exp_coef <- exp(ctable[, "Value"])
+(ctable <- cbind(ctable, "p value" = p, "exp_coef" = exp_coef))
+#confint.default(OSI_model) #check...
+```
+
+The coefficients from the model can be somewhat difficult to interpret because they are scaled in terms of logs. Another way to interpret logistic regression models is to convert the coefficients into odds ratios. To get the OR and confidence intervals, we just exponentiate the estimates and confidence intervals.
+
+These coefficients are called proportional odds ratios and we would interpret these pretty much as we would odds ratios from a binary logistic regression. (see last column above)
+
+i.e., For every one unit increase in, for example, overall participation in class AIMGs the odds of having a higher OSI is multiplied by the exp_coef value times (i.e., increases 85%), holding constant all other variables.
+
+# Further post hoc exploratory analyses
+
+### SEM option
+
+With formal groups
+
+```{r}
+model <- 'academic_performance ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_stress_scale + GTS + LCS
+academic_stress_scale ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_performance + GTS + LCS
+GTS ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_performance + academic_stress_scale + LCS
+LCS ~ class_overall_participation + formal_overall_participation + study_overall_participation  + academic_performance + academic_stress_scale + GTS
+class_overall_participation~~formal_overall_participation
+class_overall_participation~~study_overall_participation
+formal_overall_participation~~study_overall_participation'
+```
+
+```{r}
+fit <- sem(model, data=raw_data)
+summary(fit, fit.measures = T, standardize = T)
+```
+
+```{r}
+semPaths(fit, rotation=2)
+```
+Without formal groups
+
+```{r}
+model <- 'academic_performance ~ class_overall_participation+ study_overall_participation + academic_stress_scale + GTS + LCS
+academic_stress_scale ~ class_overall_participation + study_overall_participation + academic_performance + GTS + LCS
+GTS ~ class_overall_participation + study_overall_participation + academic_performance + academic_stress_scale + LCS
+LCS ~ class_overall_participation + study_overall_participation  + academic_performance + academic_stress_scale + GTS
+class_overall_participation~~study_overall_participation'
+```
+
+```{r}
+fit <- sem(model, data=raw_data)
+summary(fit, fit.measures = T, standardize = T)
+```
+
+```{r}
+semPaths(fit, rotation=2,residuals=F)
+```

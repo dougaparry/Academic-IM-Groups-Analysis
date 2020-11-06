@@ -1769,9 +1769,32 @@ pacman::p_load(tidyverse, dplyr, pwr, TOSTER)</code></pre>
 <h1>A priori power analysis for exploratory survey study to determine necessary sample size</h1>
 <p>The power analysis will be based on the primary statistical anlaysis conducted in the study</p>
 <!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuUjIgPSAwLjA1ICMgc3BlY2lmeSBhcyBuZWVkZWRcbmYyIDwtIFIyLygxLVIyKVxuXG5sbV9wb3dlciA8LSBwd3IuZjIudGVzdCh1ID0gMjIsICNzcGVjaWZ5IGFzIG5lZWRlZCAodGhpcyBpbmRpY2F0ZXMgMyBjb250aW51b3VzIGNvZWZmaWNpZW50cylcbiAgICAgICAgICAgIGYyID1mMixcbiAgICAgICAgICAgIHYgPSBOVUxMLFxuICAgICAgICAgICAgc2lnLmxldmVsID0gMC4wNSxcbiAgICAgICAgICAgIHBvd2VyID0gMC44MClcblxubG1fcG93ZXJcbmBgYCJ9 -->
+<pre class="r"><code>R2 = 0.05 # specify as needed
+f2 &lt;- R2/(1-R2)
+
+lm_power &lt;- pwr.f2.test(u = 22, #specify as needed (this indicates 3 continuous coefficients)
+            f2 =f2,
+            v = NULL,
+            sig.level = 0.05,
+            power = 0.80)
+
+lm_power</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>To get the sample size from the above:</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubiA8LSBsbV9wb3dlciR2ICsgbG1fcG93ZXIkdSArIDFcbm5cbmBgYCJ9 -->
+<pre class="r"><code>n &lt;- lm_power$v + lm_power$u + 1
+n</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiUG93ZXIgQW5hbHlzaXMiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCiMgTG9hZCBwYWNrYWdlcywgY2xlYXIgZW52aXJvbm1lbnQsIHNldCBzZWVkLCBhbmQgdHVybiBzY2llbnRpZmljIG5vdGF0aW9uIG9mZgpgYGB7ciBzZXR1cCwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0Kcm0obGlzdCA9IGxzKCkpCm9wdGlvbnMoY29udHJhc3RzID0gYygiY29udHIuc3VtIiwiY29udHIucG9seSIpLCBzY2lwZW4gPSAxMikKc2V0LnNlZWQoNDIpCgppZiAoIXJlcXVpcmUoInBhY21hbiIpKSBpbnN0YWxsLnBhY2thZ2VzKCJwYWNtYW4iKTsgCmxpYnJhcnkocGFjbWFuKQpwYWNtYW46OnBfbG9hZCh0aWR5dmVyc2UsIGRwbHlyLCBwd3IsIFRPU1RFUikKYGBgCgojIEEgcHJpb3JpIHBvd2VyIGFuYWx5c2lzIGZvciBleHBsb3JhdG9yeSBzdXJ2ZXkgc3R1ZHkgdG8gZGV0ZXJtaW5lIG5lY2Vzc2FyeSBzYW1wbGUgc2l6ZQoKVGhlIHBvd2VyIGFuYWx5c2lzIHdpbGwgYmUgYmFzZWQgb24gdGhlIHByaW1hcnkgc3RhdGlzdGljYWwgYW5sYXlzaXMgY29uZHVjdGVkIGluIHRoZSBzdHVkeQ==</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiUG93ZXIgQW5hbHlzaXMiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCiMgTG9hZCBwYWNrYWdlcywgY2xlYXIgZW52aXJvbm1lbnQsIHNldCBzZWVkLCBhbmQgdHVybiBzY2llbnRpZmljIG5vdGF0aW9uIG9mZgpgYGB7ciBzZXR1cCwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0Kcm0obGlzdCA9IGxzKCkpCm9wdGlvbnMoY29udHJhc3RzID0gYygiY29udHIuc3VtIiwiY29udHIucG9seSIpLCBzY2lwZW4gPSAxMikKc2V0LnNlZWQoNDIpCgppZiAoIXJlcXVpcmUoInBhY21hbiIpKSBpbnN0YWxsLnBhY2thZ2VzKCJwYWNtYW4iKTsgCmxpYnJhcnkocGFjbWFuKQpwYWNtYW46OnBfbG9hZCh0aWR5dmVyc2UsIGRwbHlyLCBwd3IsIFRPU1RFUikKYGBgCgojIEEgcHJpb3JpIHBvd2VyIGFuYWx5c2lzIGZvciBleHBsb3JhdG9yeSBzdXJ2ZXkgc3R1ZHkgdG8gZGV0ZXJtaW5lIG5lY2Vzc2FyeSBzYW1wbGUgc2l6ZQoKVGhlIHBvd2VyIGFuYWx5c2lzIHdpbGwgYmUgYmFzZWQgb24gdGhlIHByaW1hcnkgc3RhdGlzdGljYWwgYW5sYXlzaXMgY29uZHVjdGVkIGluIHRoZSBzdHVkeQoKYGBge3J9ClIyID0gMC4wNSAjIHNwZWNpZnkgYXMgbmVlZGVkCmYyIDwtIFIyLygxLVIyKQoKbG1fcG93ZXIgPC0gcHdyLmYyLnRlc3QodSA9IDIyLCAjc3BlY2lmeSBhcyBuZWVkZWQgKHRoaXMgaW5kaWNhdGVzIDMgY29udGludW91cyBjb2VmZmljaWVudHMpCiAgICAgICAgICAgIGYyID1mMiwKICAgICAgICAgICAgdiA9IE5VTEwsCiAgICAgICAgICAgIHNpZy5sZXZlbCA9IDAuMDUsCiAgICAgICAgICAgIHBvd2VyID0gMC44MCkKCmxtX3Bvd2VyCmBgYAoKVG8gZ2V0IHRoZSBzYW1wbGUgc2l6ZSBmcm9tIHRoZSBhYm92ZToKYGBge3J9Cm4gPC0gbG1fcG93ZXIkdiArIGxtX3Bvd2VyJHUgKyAxCm4KYGBgCg==</div>
 
 
 
