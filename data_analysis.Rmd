@@ -22,6 +22,12 @@ raw_data <- read_csv("Raw_Data/raw_data.csv")
 
 # Data cleaning
 
+## Remove test responses before 19 November
+```{r}
+raw_data <- raw_data %>% filter(Ended > "11/19/2020 12:00:00")
+```
+
+
 ## remove incomplete responses 
 (using the `Ended` variable to determine if the survey was submitted)
 ```{r}
