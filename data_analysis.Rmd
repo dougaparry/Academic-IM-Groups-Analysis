@@ -274,6 +274,8 @@ use_proportion_figure<- use_proportion_data %>%
   theme(axis.line = element_line(colour = "black"),
         axis.text.y = element_text(size = 10))
 
+use_proportion_figure
+
 ggsave((filename="Figures/use_proportion_figure.pdf"), scale = 1, width = 10, height=5, dpi = 600, limitsize = TRUE, use_proportion_figure)
 ```
 
@@ -296,6 +298,116 @@ raw_data <- raw_data %>%
                                               use_proportion_study_AIMG == "In more than half of my modules" ~3,
                                               use_proportion_study_AIMG == "In all of my modules" ~4))
 ```
+
+```{r}
+raw_data %>% dplyr::select(use_proportion_formal_AIMG, use_proportion_class_AIMG, use_proportion_study_AIMG) %>% 
+  psych::describe()
+```
+
+```{r}
+raw_data %>% dplyr::select(use_proportion_formal_AIMG) %>%
+  group_by(use_proportion_formal_AIMG) %>% 
+    summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+```{r}
+raw_data %>% dplyr::select(use_proportion_class_AIMG) %>%
+  group_by(use_proportion_class_AIMG) %>% 
+    summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+```{r}
+raw_data %>% dplyr::select(use_proportion_study_AIMG) %>%
+  group_by(use_proportion_study_AIMG) %>% 
+    summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+#Q: Is their a clear pattern in who indicates that they use Formal AIMGs in all of their modules? 
+#A: No
+```{r}
+raw_data %>% 
+  filter(use_proportion_formal_AIMG == 4) %>% 
+  dplyr::select(faculty) %>%  
+  group_by(faculty) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+#Visualise frequencies
+```{r}
+raw_data<- raw_data %>% 
+  mutate(class_read_frequency = `_class_AIMG_read_Column2`,
+         class_post_frequency = `_class_AIMG_post_Column2`,
+         class_share_frequency = `_class_AIMG_share_Column2`,
+         formal_read_frequency = `_formal_AIMG_read_Column2`,
+         formal_post_frequency = `_formal_AIMG_post_Column2`,
+         formal_share_frequency = `_formal_AIMG_share_Column2`,
+         study_read_frequency = `_group_AIMG_read_Column2`,
+         study_post_frequency = `_group_AIMG_post_Column2`,
+         study_share_frequency = `_group_AIMG_share_Column2`)
+```
+
+```{r}
+use_frequency_figure <- raw_data %>% dplyr::select(study_read_frequency, formal_read_frequency, class_read_frequency,
+                           study_post_frequency,formal_post_frequency, class_post_frequency,
+                           study_share_frequency, formal_share_frequency, class_share_frequency) %>% 
+    pivot_longer(cols = c(study_read_frequency, formal_read_frequency, class_read_frequency,
+                           study_post_frequency,formal_post_frequency, class_post_frequency,
+                           study_share_frequency, formal_share_frequency, class_share_frequency), 
+                 names_to = "context", values_to = "frequency") %>% 
+  separate(context, into = c("group_type", "action_type", "other"), sep = "_") %>% 
+  dplyr::select(group_type, action_type, frequency) %>% 
+  mutate(frequency = factor(case_when(frequency == "never" ~ "Never",
+                                      frequency == "a couple of times per semester" ~ "A couple of times per semester",
+                                      frequency == "a couple of times per week" ~ "A couple of times per week",
+                                      frequency == "daily" ~ "Daily", 
+                                      frequency == "multiple times per day" ~ "Multiple times per day"), 
+                            levels = c("Multiple times per day", "Daily","A couple of times per week","A couple of times per semester" ,"Never")),
+         group_type = factor(case_when(group_type == "formal"~ "Formal AIMGs",
+                                group_type == "class"~ "Class AIMGs",
+                                group_type == "study" ~ "Study AIMGs"), 
+                             levels = c("Study AIMGs", "Class AIMGs", "Formal AIMGs")),
+         action_type = factor(case_when(action_type == "read"~ "Read",
+                                action_type == "post"~ "Post",
+                                action_type == "share" ~ "Share"), 
+                             levels = c("Read", "Post", "Share"))) %>% 
+  group_by(group_type, action_type, frequency) %>% 
+  filter(!is.na(frequency)) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(fill=factor(frequency), y=count, x=group_type)) + 
+    geom_bar(position="dodge", stat="identity") +
+  scale_fill_brewer(palette = "Blues")+
+  labs(fill = "Frequency", x = "AIMG Type", y = "Count", title="Participation frequency by action type and group type")+
+  scale_y_continuous(expand = expansion(mult = c(0, .1)))+
+  theme_minimal() + coord_flip()+
+  theme(axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 10),
+        legend.position = "bottom") + guides(fill=guide_legend(nrow=2,byrow=TRUE, reverse = TRUE)) +
+  facet_wrap(~action_type)
+
+use_frequency_figure
+
+ggsave((filename="Figures/use_frequency_figure.pdf"), scale = 1, width = 10, height=5, dpi = 600, limitsize = TRUE, use_frequency_figure)
+```
+```{r}
+raw_data %>% dplyr::select(study_read_frequency, formal_read_frequency, class_read_frequency,
+                           study_post_frequency,formal_post_frequency, class_post_frequency,
+                           study_share_frequency, formal_share_frequency, class_share_frequency) %>% 
+    pivot_longer(cols = c(study_read_frequency, formal_read_frequency, class_read_frequency,
+                           study_post_frequency,formal_post_frequency, class_post_frequency,
+                           study_share_frequency, formal_share_frequency, class_share_frequency), names_to = "context", values_to = "frequency") %>% 
+  separate(context, into = c("group_type", "action_type", "other"), sep = "_") %>% 
+  dplyr::select(group_type, action_type, frequency) %>% 
+  group_by(group_type, action_type, frequency) %>% 
+  filter(!is.na(frequency)) %>% 
+  summarise(count = n())  %>% 
+  mutate(perc = count/sum(count)*100) %>% 
+  arrange(group_type) #note, arrange ignores groups
+```
+
 
 ### Produce frequency scales
 
@@ -394,48 +506,6 @@ raw_data<- raw_data %>%
   mutate(frequency_study = as.numeric(study_read_frequency+study_post_frequency+study_share_frequency))
 ```
 
-# Visualise frequency variables
-
-```{r}
-read_frequency <- raw_data %>% dplyr::select(study_read_frequency, formal_read_frequency, class_read_frequency)
-post_frequency <- raw_data %>% dplyr::select(study_post_frequency,formal_post_frequency, class_post_frequency)
-share_frequency <- raw_data %>% dplyr::select(study_share_frequency, formal_share_frequency, class_share_frequency)
-
-read_frequency_data <- pivot_longer(data = read_frequency, cols = c(study_read_frequency, formal_read_frequency, class_read_frequency), names_to = "group_type_1", values_to = "read")
-post_frequency_data <- pivot_longer(data = post_frequency, cols = c(study_post_frequency,formal_post_frequency, class_post_frequency), names_to = "group_type_2", values_to = "post")
-share_frequency_data <- pivot_longer(data = share_frequency, cols = c(study_share_frequency, formal_share_frequency, class_share_frequency), names_to = "group_type_3", values_to = "share")
-
-together <- cbind(read_frequency_data, post_frequency_data, share_frequency_data)
-
-together <- together %>% 
-  mutate(group_type = case_when(group_type_1 == "study_read_frequency" ~ "Study AIMG",
-                                  group_type_1 == "class_read_frequency" ~ "Class AIMG",
-                                  group_type_1 == "formal_read_frequency" ~ "Formal AIMG")) %>% 
-  dplyr::select(group_type, read, post, share)
-```
-
-```{r}
-raw_data %>% dplyr::select(study_read_frequency, formal_read_frequency, class_read_frequency,
-                           study_post_frequency,formal_post_frequency, class_post_frequency,
-                           study_share_frequency, formal_share_frequency, class_share_frequency) %>% 
-    pivot_longer(cols = c(study_read_frequency, formal_read_frequency, class_read_frequency,
-                           study_post_frequency,formal_post_frequency, class_post_frequency,
-                           study_share_frequency, formal_share_frequency, class_share_frequency), names_to = "context", values_to = "frequency") %>% 
-  separate(context, into = c("group_type", "action_type", "other"), sep = "_") %>% 
-  dplyr::select(group_type, action_type, frequency) %>% 
-  group_by(group_type, action_type, frequency) %>% 
-  summarise(count = n())  %>% 
-  mutate(perc = count/sum(count)*100)
-```
-
-
-```{r}
-together %>% 
-  group_by(group_type, read) %>% 
-  summarise(n=n()) %>% 
-  mutate(perc = n/sum(n)*100)
-```
-
 
 ### Combine to produce overall participation scales
 
@@ -451,88 +521,6 @@ raw_data %>%
   dplyr::select(class_overall_participation, 
                     formal_overall_participation, study_overall_participation) %>% 
   psych::describe()
-```
-
-```{r}
-raw_data %>% dplyr::select(use_proportion_formal_AIMG, use_proportion_class_AIMG, use_proportion_study_AIMG) %>% 
-  psych::describe()
-```
-
-```{r}
-raw_data %>% dplyr::select(use_proportion_formal_AIMG) %>%
-  group_by(use_proportion_formal_AIMG) %>% 
-    summarise(n=n()) %>% 
-  mutate(perc = n/sum(n)*100)
-```
-
-```{r}
-raw_data %>% dplyr::select(use_proportion_class_AIMG) %>%
-  group_by(use_proportion_class_AIMG) %>% 
-    summarise(n=n()) %>% 
-  mutate(perc = n/sum(n)*100)
-```
-
-```{r}
-raw_data %>% dplyr::select(use_proportion_study_AIMG) %>%
-  group_by(use_proportion_study_AIMG) %>% 
-    summarise(n=n()) %>% 
-  mutate(perc = n/sum(n)*100)
-```
-
-#Q: Is their a clear pattern in who indicates that they use Formal AIMGs in all of their modules? 
-#A: No
-```{r}
-raw_data %>% 
-  filter(use_proportion_formal_AIMG == 4) %>% 
-  dplyr::select(faculty) %>%  
-  group_by(faculty) %>% 
-  summarise(n=n()) %>% 
-  mutate(perc = n/sum(n)*100)
-```
-
-
-
-
-```{r}
-use_frequency_figure <- raw_data %>% dplyr::select(study_read_frequency, formal_read_frequency, class_read_frequency,
-                           study_post_frequency,formal_post_frequency, class_post_frequency,
-                           study_share_frequency, formal_share_frequency, class_share_frequency) %>% 
-    pivot_longer(cols = c(study_read_frequency, formal_read_frequency, class_read_frequency,
-                           study_post_frequency,formal_post_frequency, class_post_frequency,
-                           study_share_frequency, formal_share_frequency, class_share_frequency), 
-                 names_to = "context", values_to = "frequency") %>% 
-  separate(context, into = c("group_type", "action_type", "other"), sep = "_") %>% 
-  dplyr::select(group_type, action_type, frequency) %>% 
-  mutate(frequency = factor(case_when(frequency == 0 ~ "Never",
-                                      frequency == 0.25 ~ "A couple of times per semester",
-                                      frequency == 0.5 ~ "A couple of times per week",
-                                      frequency == 1 ~ "Daily", 
-                                      frequency == 2 ~ "Multiple times per day"), 
-                            levels = c("Multiple times per day", "Daily","A couple of times per week","A couple of times per semester" ,"Never")),
-         group_type = factor(case_when(group_type == "formal"~ "Formal AIMGs",
-                                group_type == "class"~ "Class AIMGs",
-                                group_type == "study" ~ "Study AIMGs"), 
-                             levels = c("Study AIMGs", "Class AIMGs", "Formal AIMGs")),
-         action_type = factor(case_when(action_type == "read"~ "Read",
-                                action_type == "post"~ "Post",
-                                action_type == "share" ~ "Share"), 
-                             levels = c("Read", "Post", "Share"))) %>% 
-  group_by(group_type, action_type, frequency) %>% 
-  summarise(count = n()) %>% 
-  ggplot(aes(fill=factor(frequency), y=count, x=group_type)) + 
-    geom_bar(position="dodge", stat="identity") +
-  scale_fill_brewer(palette = "Blues")+
-  labs(fill = "Frequency", x = "AIMG Type", y = "Count", title="Participation frequency by action type and group type")+
-  scale_y_continuous(expand = expansion(mult = c(0, .1)))+
-  theme_minimal() + coord_flip()+
-  theme(axis.line = element_line(colour = "black"),
-        axis.text.y = element_text(size = 10),
-        legend.position = "bottom") + guides(fill=guide_legend(nrow=2,byrow=TRUE, reverse = TRUE)) +
-  facet_wrap(~action_type)
-
-use_frequency_figure
-
-ggsave((filename="Figures/use_frequency_figure.pdf"), scale = 1, width = 10, height=5, dpi = 600, limitsize = TRUE, use_frequency_figure)
 ```
 # Visualise overall participation
 
@@ -633,36 +621,109 @@ group_uses_data <- group_uses_data %>%
             `These groups are used to_group_share_non_academic_Column2`))
 
 raw_data_purposes <- rbind(formal_uses_data, class_uses_data, group_uses_data) 
+```
+```{r}
+levels = c("always", "mostly", "about half the time", "rarely", "never")
 
-# Can do the below for each purpose to get the % of respondents in each group type who responded in each way
-# For visualisation can use the likert package which will make it easier to do all in one go (leaving for now...)
-
-raw_data_purposes %>% group_by(group_type, communicate_administrative) %>% 
-  summarise(n = n()) %>%
-  mutate(freq = n / sum(n))
+use_purposes_fig <- raw_data_purposes %>% filter(!is.na(communicate_administrative))  %>% 
+  mutate(communicate_administrative = factor(communicate_administrative, levels, ordered=TRUE),
+         discuss_content = factor(discuss_content, levels, ordered=TRUE),
+         share_notes = factor(share_notes, levels, ordered=TRUE),
+         share_answers = factor(share_answers, levels, ordered=TRUE),
+         coordinate_groupwork = factor(coordinate_groupwork, levels, ordered=TRUE),
+         encourage = factor(encourage, levels, ordered=TRUE),
+         share_non_academic = factor(share_non_academic, levels, ordered=TRUE),
+         group_type = case_when(group_type == "formal"~"Formal AIMGs",
+                                group_type =="class"~"Class AIMGs",
+                                group_type == "group" ~ "Study AIMGs")) %>% pivot_longer(cols = c(communicate_administrative, discuss_content,
+                                            share_notes, share_answers, coordinate_groupwork, encourage, share_non_academic), names_to = "Use_purpose", values_to = "response") %>% 
+ group_by(group_type, Use_purpose, response)  %>% 
+  summarise(n = n()) %>% 
+  ungroup() %>% 
+  group_by(group_type, Use_purpose) %>% 
+  mutate(count_resp = sum(n)) %>% 
+  group_by(Use_purpose, add = TRUE) %>% 
+  mutate(per = round(100*n/count_resp,2)) %>% 
+  ggplot(aes(x = Use_purpose, y = per, fill = response)) +
+  geom_bar(stat = "identity", width = 0.8) + coord_flip() + facet_wrap(~group_type, ncol=1) + 
+  #geom_text(aes(label=per), position = position_stack(.5), size = 3)+
+  scale_fill_brewer(palette = "RdYlGn", direction = -1)+
+  labs(x = "Use purpose", y = "Response proportion")+
+  theme_minimal() + 
+  coord_flip()+
+  theme(axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 10),
+        legend.position = "bottom") + guides(fill=guide_legend(nrow=1,byrow=TRUE, reverse = TRUE)) 
+use_purposes_fig
+ggsave((filename="Figures/use_purposes_figure.pdf"), scale = 1, width = 10, height=5, dpi = 600, limitsize = TRUE, use_purposes_fig)
 ```
 
-
-# Data Analysis 
-
-## analysis of proportions for likert scales
-
-(return to this later)
+# Use outcomes
 
 ```{r}
-# Modules_AIMG <- as.data.frame(data %>% 
-#                                 dplyr::select(use_modules_formal_AIMG, use_modules_class_AIMG, use_modules_study_AIMG))
-# 
-# modules_likert_data<-likert::likert(Modules_AIMG)
-# print(modules_likert_data) #print percentage for each option
-```
-Visualise proportions (rough figure can polish later)
+formal_outcomes_data <- raw_data %>% dplyr::select(starts_with("Please indicate your level of agreement with the following statements")) %>% dplyr::select(contains("formal"))
+class_outcomes_data <- raw_data %>% dplyr::select(starts_with("Please indicate your level of agreement with the following statements")) %>% dplyr::select(contains("class"))
+group_outcomes_data <- raw_data %>% dplyr::select(starts_with("Please indicate your level of agreement with the following statements")) %>% dplyr::select(contains("group_outcome"))
 
-```{r}
-plot(modules_likert_data)
+formal_outcomes_data <- formal_outcomes_data %>% 
+  add_column(group_type = "formal")
+
+class_outcomes_data <- class_outcomes_data %>% 
+  add_column(group_type = "class")
+
+group_outcomes_data <- group_outcomes_data %>% 
+  add_column(group_type = "group")
+
+
+formal_uses_data <- formal_uses_data %>% 
+  mutate(communicate_administrative = `These groups are used to_formal_communicate_administrative_Column2`,
+         discuss_content = `These groups are used to_formal_discuss_content_Column2`,
+         share_notes = `These groups are used to_formal_share_notes_Column2`,
+         share_answers = `These groups are used to_formal_share_answers_Column2`,
+         coordinate_groupwork = `These groups are used to_formal_coordinate_group_Column2`,
+         encourage = `These groups are used to_formal_encourage_Column2`,
+         share_non_academic = `These groups are used to_formal_share_non_academic_Column2`) %>% 
+  dplyr::select(-c(`These groups are used to_formal_communicate_administrative_Column2`, `These groups are used to_formal_discuss_content_Column2`,
+            `These groups are used to_formal_share_notes_Column2`, `These groups are used to_formal_share_answers_Column2`,
+            `These groups are used to_formal_coordinate_group_Column2`, `These groups are used to_formal_encourage_Column2`,
+            `These groups are used to_formal_share_non_academic_Column2`))
+
+class_uses_data <- class_uses_data %>% 
+  mutate(communicate_administrative = `These groups are used to_class_communicate_administrative_Column2`,
+         discuss_content = `These groups are used to_class_discuss_academic_Column2`,
+         share_notes = `These groups are used to_class_share_notes_Column2`,
+         share_answers = `These groups are used to_class_share_answers_Column2`,
+         coordinate_groupwork = `These groups are used to_class_coordinate_group_Column2`,
+         encourage = `These groups are used to_class_encourage_Column2`,
+         share_non_academic = `These groups are used to_class_share_non_academic_Column2`) %>% 
+  dplyr::select(-c(`These groups are used to_class_communicate_administrative_Column2`, `These groups are used to_class_discuss_academic_Column2`,
+            `These groups are used to_class_share_notes_Column2`, `These groups are used to_class_share_answers_Column2`,
+            `These groups are used to_class_coordinate_group_Column2`, `These groups are used to_class_encourage_Column2`,
+            `These groups are used to_class_share_non_academic_Column2`))
+
+group_uses_data <- group_uses_data %>% 
+  mutate(communicate_administrative = `These groups are used to_group_communicate_administrative_Column2`,
+         discuss_content = `These groups are used to_group_discuss_academic_Column2`,
+         share_notes = `These groups are used to_group_share_notes_Column2`,
+         share_answers = `These groups are used to_group_share_answers_Column2`,
+         coordinate_groupwork = `These groups are used to_group_coordinate_group_Column2`,
+         encourage = `These groups are used to_group_encourage_Column2`,
+         share_non_academic = `These groups are used to_group_share_non_academic_Column2`) %>% 
+  dplyr::select(-c(`These groups are used to_group_communicate_administrative_Column2`, `These groups are used to_group_discuss_academic_Column2`,
+            `These groups are used to_group_share_notes_Column2`, `These groups are used to_group_share_answers_Column2`,
+            `These groups are used to_group_coordinate_group_Column2`, `These groups are used to_group_encourage_Column2`,
+            `These groups are used to_group_share_non_academic_Column2`))
+
+raw_data_purposes <- rbind(formal_uses_data, class_uses_data, group_uses_data) 
 ```
 
-*****Come back to the section above*****
+
+
+
+
+
+
+
 
 ## correlation matrix
 ```{r}
@@ -688,11 +749,8 @@ predicting AP
 AP_model <- lm(academic_performance ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_stress_scale + LCS+GTS + age + faculty + study_year + gender, data = raw_data)
 summary(AP_model)
 
-round(MuMIn::std.coef(AP_model, partial.sd = TRUE), 2) #to get standardised beta coefficients
-
-#standardise coefficients
-#AP_model_standardised_ceofs <- lm.beta(AP_model) #won't work for the categorical coefficients - figure out
-#AP_model_standardised_ceofs
+AP_model_standardised_ceofs <- lm.beta(AP_model) 
+AP_model_standardised_ceofs
 ```
 
 Predicting AS
