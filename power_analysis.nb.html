@@ -1753,10 +1753,10 @@ summary {
 <h1>Load packages, clear environment, set seed, and turn scientific notation off</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucm0obGlzdCA9IGxzKCkpXG5vcHRpb25zKGNvbnRyYXN0cyA9IGMoXCJjb250ci5zdW1cIixcImNvbnRyLnBvbHlcIiksIHNjaXBlbiA9IDEyKVxuc2V0LnNlZWQoNDIpXG5cbmlmICghcmVxdWlyZShcInBhY21hblwiKSkgaW5zdGFsbC5wYWNrYWdlcyhcInBhY21hblwiKTsgXG5saWJyYXJ5KHBhY21hbilcbnBhY21hbjo6cF9sb2FkKHRpZHl2ZXJzZSwgZHBseXIsIHB3ciwgVE9TVEVSKVxuYGBgIn0= -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucm0obGlzdCA9IGxzKCkpXG5vcHRpb25zKGNvbnRyYXN0cyA9IGMoXCJjb250ci5zdW1cIixcImNvbnRyLnBvbHlcIiksIHNjaXBlbiA9IDEyKVxuc2V0LnNlZWQoNDUpXG5cbmlmICghcmVxdWlyZShcInBhY21hblwiKSkgaW5zdGFsbC5wYWNrYWdlcyhcInBhY21hblwiKTsgXG5saWJyYXJ5KHBhY21hbilcbnBhY21hbjo6cF9sb2FkKHRpZHl2ZXJzZSwgZHBseXIsIHB3ciwgVE9TVEVSKVxuYGBgIn0= -->
 <pre class="r"><code>rm(list = ls())
 options(contrasts = c(&quot;contr.sum&quot;,&quot;contr.poly&quot;), scipen = 12)
-set.seed(42)
+set.seed(45)
 
 if (!require(&quot;pacman&quot;)) install.packages(&quot;pacman&quot;); 
 library(pacman)
@@ -1782,6 +1782,16 @@ lm_power &lt;- pwr.f2.test(u = 22, #specify as needed (this indicates 3 continuo
 
 lm_power</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG4gICAgIE11bHRpcGxlIHJlZ3Jlc3Npb24gcG93ZXIgY2FsY3VsYXRpb24gXG5cbiAgICAgICAgICAgICAgdSA9IDIyXG4gICAgICAgICAgICAgIHYgPSA0MDcuMzAzMlxuICAgICAgICAgICAgIGYyID0gMC4wNTI2MzE1OFxuICAgICAgc2lnLmxldmVsID0gMC4wNVxuICAgICAgICAgIHBvd2VyID0gMC44XG4ifQ== -->
+<pre><code>
+     Multiple regression power calculation 
+
+              u = 22
+              v = 407.3032
+             f2 = 0.05263158
+      sig.level = 0.05
+          power = 0.8</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p>To get the sample size from the above:</p>
@@ -1791,10 +1801,13 @@ lm_power</code></pre>
 <pre class="r"><code>n &lt;- lm_power$v + lm_power$u + 1
 n</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDQzMC4zMDMyXG4ifQ== -->
+<pre><code>[1] 430.3032</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiUG93ZXIgQW5hbHlzaXMiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCiMgTG9hZCBwYWNrYWdlcywgY2xlYXIgZW52aXJvbm1lbnQsIHNldCBzZWVkLCBhbmQgdHVybiBzY2llbnRpZmljIG5vdGF0aW9uIG9mZgpgYGB7ciBzZXR1cCwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0Kcm0obGlzdCA9IGxzKCkpCm9wdGlvbnMoY29udHJhc3RzID0gYygiY29udHIuc3VtIiwiY29udHIucG9seSIpLCBzY2lwZW4gPSAxMikKc2V0LnNlZWQoNDIpCgppZiAoIXJlcXVpcmUoInBhY21hbiIpKSBpbnN0YWxsLnBhY2thZ2VzKCJwYWNtYW4iKTsgCmxpYnJhcnkocGFjbWFuKQpwYWNtYW46OnBfbG9hZCh0aWR5dmVyc2UsIGRwbHlyLCBwd3IsIFRPU1RFUikKYGBgCgojIEEgcHJpb3JpIHBvd2VyIGFuYWx5c2lzIGZvciBleHBsb3JhdG9yeSBzdXJ2ZXkgc3R1ZHkgdG8gZGV0ZXJtaW5lIG5lY2Vzc2FyeSBzYW1wbGUgc2l6ZQoKVGhlIHBvd2VyIGFuYWx5c2lzIHdpbGwgYmUgYmFzZWQgb24gdGhlIHByaW1hcnkgc3RhdGlzdGljYWwgYW5sYXlzaXMgY29uZHVjdGVkIGluIHRoZSBzdHVkeQoKYGBge3J9ClIyID0gMC4wNSAjIHNwZWNpZnkgYXMgbmVlZGVkCmYyIDwtIFIyLygxLVIyKQoKbG1fcG93ZXIgPC0gcHdyLmYyLnRlc3QodSA9IDIyLCAjc3BlY2lmeSBhcyBuZWVkZWQgKHRoaXMgaW5kaWNhdGVzIDMgY29udGludW91cyBjb2VmZmljaWVudHMpCiAgICAgICAgICAgIGYyID1mMiwKICAgICAgICAgICAgdiA9IE5VTEwsCiAgICAgICAgICAgIHNpZy5sZXZlbCA9IDAuMDUsCiAgICAgICAgICAgIHBvd2VyID0gMC44MCkKCmxtX3Bvd2VyCmBgYAoKVG8gZ2V0IHRoZSBzYW1wbGUgc2l6ZSBmcm9tIHRoZSBhYm92ZToKYGBge3J9Cm4gPC0gbG1fcG93ZXIkdiArIGxtX3Bvd2VyJHUgKyAxCm4KYGBgCg==</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiUG93ZXIgQW5hbHlzaXMiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCiMgTG9hZCBwYWNrYWdlcywgY2xlYXIgZW52aXJvbm1lbnQsIHNldCBzZWVkLCBhbmQgdHVybiBzY2llbnRpZmljIG5vdGF0aW9uIG9mZgpgYGB7ciBzZXR1cCwgbWVzc2FnZT1GQUxTRSwgd2FybmluZz1GQUxTRX0Kcm0obGlzdCA9IGxzKCkpCm9wdGlvbnMoY29udHJhc3RzID0gYygiY29udHIuc3VtIiwiY29udHIucG9seSIpLCBzY2lwZW4gPSAxMikKc2V0LnNlZWQoNDUpCgppZiAoIXJlcXVpcmUoInBhY21hbiIpKSBpbnN0YWxsLnBhY2thZ2VzKCJwYWNtYW4iKTsgCmxpYnJhcnkocGFjbWFuKQpwYWNtYW46OnBfbG9hZCh0aWR5dmVyc2UsIGRwbHlyLCBwd3IsIFRPU1RFUikKYGBgCgojIEEgcHJpb3JpIHBvd2VyIGFuYWx5c2lzIGZvciBleHBsb3JhdG9yeSBzdXJ2ZXkgc3R1ZHkgdG8gZGV0ZXJtaW5lIG5lY2Vzc2FyeSBzYW1wbGUgc2l6ZQoKVGhlIHBvd2VyIGFuYWx5c2lzIHdpbGwgYmUgYmFzZWQgb24gdGhlIHByaW1hcnkgc3RhdGlzdGljYWwgYW5sYXlzaXMgY29uZHVjdGVkIGluIHRoZSBzdHVkeQoKYGBge3J9ClIyID0gMC4wNSAjIHNwZWNpZnkgYXMgbmVlZGVkCmYyIDwtIFIyLygxLVIyKQoKbG1fcG93ZXIgPC0gcHdyLmYyLnRlc3QodSA9IDIyLAogICAgICAgICAgICBmMiA9ZjIsCiAgICAgICAgICAgIHYgPSBOVUxMLAogICAgICAgICAgICBzaWcubGV2ZWwgPSAwLjA1LAogICAgICAgICAgICBwb3dlciA9IDAuODApCgpsbV9wb3dlcgpgYGAKClRvIGdldCB0aGUgc2FtcGxlIHNpemUgZnJvbSB0aGUgYWJvdmU6CmBgYHtyfQpuIDwtIGxtX3Bvd2VyJHYgKyBsbV9wb3dlciR1ICsgMQpuCmBgYAo=</div>
 
 
 

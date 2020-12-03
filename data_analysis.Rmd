@@ -63,7 +63,6 @@ raw_data %>%
 ```
 
 Gender descriptive statistics
-*****note, will need to recode to numeric for the SEM (look up what needs to be done)******
 ```{r}
 raw_data <- raw_data %>% 
   mutate(gender = as.factor(case_when(gender == "female" ~"female",
@@ -74,6 +73,7 @@ raw_data %>%
   summarise(n=n()) %>% 
   mutate(perc = n/sum(n)*100)
 ```
+
 Faculty descriptive statistics 
 ```{r}
 raw_data<- raw_data %>% 
@@ -84,6 +84,7 @@ raw_data %>%
   summarise(n=n()) %>% 
   mutate(perc = n/sum(n)*100)
 ```
+
 Remove extraneous columns now that checks are complete
 ```{r}
 raw_data <- raw_data %>% dplyr::select(-c(ResponseID, ResponseGuid, Started, Ended, TotalTime, LastEdit, 
@@ -117,7 +118,7 @@ raw_data <-raw_data %>%
                                     academic_stress_academic_stress_21_Column2) 
 ```
 
-Cronbach's alpha for internal consistency
+Cronbach's alpha for internal consistency (can consider doing CFI to check factor structure correspondence with original)
 ```{r}
 raw_data %>% 
   dplyr::select(academic_stress_academic_stress_1_Column2, academic_stress_academic_stress_2_Column2, 
@@ -203,7 +204,6 @@ raw_data %>% dplyr::select(EQ_GTS_1_Column2, EQ_GTS_2_Column2,
 ```
 
 ### Overall Satisfaction Index
-
 ```{r}
 raw_data <- raw_data %>% 
   mutate(OSI = as.factor(EQ_OSI_Column2)) %>% 
@@ -221,7 +221,7 @@ raw_data <- raw_data %>% dplyr::select(-c(EQ_LCS_1_Column2, EQ_LCS_2_Column2,
 
 ## Descriptive statistics for Dependent variables
 
-Note, OSI variable is categorical (ordinal) not numeric
+Note, OSI variable is categorical (ordinal) not numeric (indicated with an asterisk)
 ```{r}
 raw_data %>% 
   dplyr::select(academic_performance, 
@@ -265,7 +265,6 @@ raw_data <- raw_data %>%
 ```
 
 ### Produce frequency scales
-Can consider Cronbach's alpha for these (not for proportion or overall)
 
 #### Class groups frequency (recode and combine)
 
@@ -371,9 +370,12 @@ raw_data <- raw_data %>%
          study_overall_participation = as.numeric(frequency_study * use_proportion_study_AIMG))
 ```
 
-# This can be done seperately and returned to later (leaving for now to move on with main analysis planning...)
+# Use purposes and motivations
 
-(can be done in the main dataframe just doing seperately for now...)
+### This can be done seperately and returned to later (leaving for now to move on with main analysis planning...)
+
+(can be done in the main dataframe just doing separately for now...)
+(This still needs tweaking to deal with NAs etc. but the rough idea works)
 
 ## Create seperate datasets for the use purposes and motivations variables
 
@@ -434,6 +436,7 @@ raw_data_purposes <- rbind(formal_uses_data, class_uses_data, group_uses_data)
 
 # Can do the below for each purpose to get the % of respondents in each group type who responded in each way
 # For visualisation can use the likert package which will make it easier to do all in one go (leaving for now...)
+
 raw_data_purposes %>% group_by(group_type, communicate_administrative) %>% 
   summarise(n = n()) %>%
   mutate(freq = n / sum(n))
@@ -448,6 +451,7 @@ write_csv(raw_data, "Clean_Data/clean_data.csv")
 
 #rm(raw_data)
 ```
+
 # Data Analysis 
 
 ## analysis of proportions for likert scales
@@ -477,7 +481,7 @@ raw_data %>%
          class_overall_participation, formal_overall_participation, study_overall_participation,
          academic_performance, academic_stress_scale, GTS, LCS, OSI) %>% 
   as.matrix() %>% 
-  rcorr(type = "spearman")
+  rcorr(type = "spearman") #should all be spearman or only those with the OSI item and the rest Pearson??
 ```
 
 ## Modeling
@@ -486,7 +490,6 @@ raw_data %>%
 
 Multiple regression models will be produced to determine the predictive capacity of the AIMG participation variables over academic performance, academic stress and subjects’ perceptions of education quality and (operationalised through the good-teaching scale, learning community scale, and overall satisfaction index)indiinvolvement.
 
-
 Controlling for gender, faculty, and study-year. [report controlled for but not in table]
 
 predicting AP
@@ -494,16 +497,12 @@ predicting AP
 AP_model <- lm(academic_performance ~ class_overall_participation + formal_overall_participation + study_overall_participation + academic_stress_scale + LCS+GTS + age + faculty + study_year + gender, data = raw_data)
 summary(AP_model)
 
-round(MuMIn::std.coef(AP_model, partial.sd = TRUE), 2) #to get standardised..
+round(MuMIn::std.coef(AP_model, partial.sd = TRUE), 2) #to get standardised beta coefficients
 
 #standardise coefficients
 #AP_model_standardised_ceofs <- lm.beta(AP_model) #won't work for the categorical coefficients - figure out
 #AP_model_standardised_ceofs
 ```
-
-
-
-
 
 Predicting AS
 ```{r}
@@ -560,6 +559,8 @@ These coefficients are called proportional odds ratios and we would interpret th
 
 i.e., For every one unit increase in, for example, overall participation in class AIMGs the odds of having a higher OSI is multiplied by the exp_coef value times (i.e., increases 85%), holding constant all other variables.
 
+
+
 # Further post hoc exploratory analyses
 
 ### SEM option
@@ -584,6 +585,7 @@ summary(fit, fit.measures = T, standardize = T)
 ```{r}
 semPaths(fit, rotation=2)
 ```
+
 Without formal groups
 
 ```{r}
