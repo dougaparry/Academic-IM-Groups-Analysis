@@ -11,7 +11,7 @@ set.seed(42)
 
 if (!require("pacman")) install.packages("pacman"); 
 library(pacman)
-pacman::p_load(tidyverse, dplyr,car, Hmisc, psych, TOSTER, lavaan, forcats, MuMIn, likert, QuantPsyc, lavaanPlot, semPlot)
+pacman::p_load(tidyverse, dplyr,car, Hmisc, psych, TOSTER, lavaan, forcats, MuMIn, likert, QuantPsyc, lavaanPlot, semPlot, ggpubr, DescTools, lm.beta, rcompanion, cowplot, PupillometryR, viridis, patchwork)
 ```
 
 # Import raw data
@@ -24,9 +24,8 @@ raw_data <- read_csv("Raw_Data/raw_data.csv")
 
 ## Remove test responses before 19 November
 ```{r}
-raw_data <- raw_data %>% filter(Ended > "11/19/2020 12:00:00")
+raw_data <- raw_data %>% filter(Started > "11/19/2020 12:00:00")
 ```
-
 
 ## remove incomplete responses 
 (using the `Ended` variable to determine if the survey was submitted)
@@ -250,6 +249,34 @@ raw_data<-raw_data %>%
   dplyr::select(-c(Group_Use_formal_AIMG_extent_Column2,Group_Use_class_AIMG_extent_Column2,Group_Use_group_AIMG_extent_Column2))
 ```
 
+```{r}
+use_proportion <- raw_data %>% dplyr::select(use_proportion_formal_AIMG, use_proportion_class_AIMG, use_proportion_study_AIMG)
+
+use_proportion_data <- pivot_longer(data = use_proportion, cols = c(use_proportion_formal_AIMG, use_proportion_class_AIMG, use_proportion_study_AIMG), names_to = "group_type", values_to = "response")
+```
+
+```{r}
+use_proportion_figure<- use_proportion_data %>% 
+  mutate(response = factor(response)) %>% 
+  mutate(response = fct_relevel(response, 
+                                "In all of my modules", "In more than half of my modules", "In about half of my modules", "In less than half of my modules", "In none of my modules")) %>% 
+  mutate(group_type = factor(case_when(group_type == "use_proportion_formal_AIMG" ~"Formal AIMGs",
+                                group_type == "use_proportion_class_AIMG" ~"Class AIMGs",
+                                group_type == "use_proportion_study_AIMG" ~"Study AIMGs"), levels = c("Study AIMGs", "Class AIMGs", "Formal AIMGs"))) %>% 
+  group_by(group_type, response) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(x = group_type, fill = response, y = count))+
+  geom_bar(position = "fill", stat = "identity") + 
+  scale_fill_brewer(palette = "Blues", direction = -1)+
+  labs(title = "Proportion of modules in which three types of AIMG are used", fill = "Response", y = "Proportion of respondents", x = "Group Type")+
+  coord_flip() + 
+  theme_minimal() +   
+  theme(axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 10))
+
+ggsave((filename="Figures/use_proportion_figure.pdf"), scale = 1, width = 10, height=5, dpi = 600, limitsize = TRUE, use_proportion_figure)
+```
+
 Recode to numeric from raw responses
 ```{r}
 raw_data <- raw_data %>% 
@@ -367,6 +394,49 @@ raw_data<- raw_data %>%
   mutate(frequency_study = as.numeric(study_read_frequency+study_post_frequency+study_share_frequency))
 ```
 
+# Visualise frequency variables
+
+```{r}
+read_frequency <- raw_data %>% dplyr::select(study_read_frequency, formal_read_frequency, class_read_frequency)
+post_frequency <- raw_data %>% dplyr::select(study_post_frequency,formal_post_frequency, class_post_frequency)
+share_frequency <- raw_data %>% dplyr::select(study_share_frequency, formal_share_frequency, class_share_frequency)
+
+read_frequency_data <- pivot_longer(data = read_frequency, cols = c(study_read_frequency, formal_read_frequency, class_read_frequency), names_to = "group_type_1", values_to = "read")
+post_frequency_data <- pivot_longer(data = post_frequency, cols = c(study_post_frequency,formal_post_frequency, class_post_frequency), names_to = "group_type_2", values_to = "post")
+share_frequency_data <- pivot_longer(data = share_frequency, cols = c(study_share_frequency, formal_share_frequency, class_share_frequency), names_to = "group_type_3", values_to = "share")
+
+together <- cbind(read_frequency_data, post_frequency_data, share_frequency_data)
+
+together <- together %>% 
+  mutate(group_type = case_when(group_type_1 == "study_read_frequency" ~ "Study AIMG",
+                                  group_type_1 == "class_read_frequency" ~ "Class AIMG",
+                                  group_type_1 == "formal_read_frequency" ~ "Formal AIMG")) %>% 
+  dplyr::select(group_type, read, post, share)
+```
+
+```{r}
+raw_data %>% dplyr::select(study_read_frequency, formal_read_frequency, class_read_frequency,
+                           study_post_frequency,formal_post_frequency, class_post_frequency,
+                           study_share_frequency, formal_share_frequency, class_share_frequency) %>% 
+    pivot_longer(cols = c(study_read_frequency, formal_read_frequency, class_read_frequency,
+                           study_post_frequency,formal_post_frequency, class_post_frequency,
+                           study_share_frequency, formal_share_frequency, class_share_frequency), names_to = "context", values_to = "frequency") %>% 
+  separate(context, into = c("group_type", "action_type", "other"), sep = "_") %>% 
+  dplyr::select(group_type, action_type, frequency) %>% 
+  group_by(group_type, action_type, frequency) %>% 
+  summarise(count = n())  %>% 
+  mutate(perc = count/sum(count)*100)
+```
+
+
+```{r}
+together %>% 
+  group_by(group_type, read) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+
 ### Combine to produce overall participation scales
 
 ```{r}
@@ -375,6 +445,130 @@ raw_data <- raw_data %>%
          formal_overall_participation = as.numeric(frequency_formal * use_proportion_formal_AIMG),
          study_overall_participation = as.numeric(frequency_study * use_proportion_study_AIMG))
 ```
+
+```{r}
+raw_data %>% 
+  dplyr::select(class_overall_participation, 
+                    formal_overall_participation, study_overall_participation) %>% 
+  psych::describe()
+```
+
+```{r}
+raw_data %>% dplyr::select(use_proportion_formal_AIMG, use_proportion_class_AIMG, use_proportion_study_AIMG) %>% 
+  psych::describe()
+```
+
+```{r}
+raw_data %>% dplyr::select(use_proportion_formal_AIMG) %>%
+  group_by(use_proportion_formal_AIMG) %>% 
+    summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+```{r}
+raw_data %>% dplyr::select(use_proportion_class_AIMG) %>%
+  group_by(use_proportion_class_AIMG) %>% 
+    summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+```{r}
+raw_data %>% dplyr::select(use_proportion_study_AIMG) %>%
+  group_by(use_proportion_study_AIMG) %>% 
+    summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+#Q: Is their a clear pattern in who indicates that they use Formal AIMGs in all of their modules? 
+#A: No
+```{r}
+raw_data %>% 
+  filter(use_proportion_formal_AIMG == 4) %>% 
+  dplyr::select(faculty) %>%  
+  group_by(faculty) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = n/sum(n)*100)
+```
+
+
+
+
+```{r}
+use_frequency_figure <- raw_data %>% dplyr::select(study_read_frequency, formal_read_frequency, class_read_frequency,
+                           study_post_frequency,formal_post_frequency, class_post_frequency,
+                           study_share_frequency, formal_share_frequency, class_share_frequency) %>% 
+    pivot_longer(cols = c(study_read_frequency, formal_read_frequency, class_read_frequency,
+                           study_post_frequency,formal_post_frequency, class_post_frequency,
+                           study_share_frequency, formal_share_frequency, class_share_frequency), 
+                 names_to = "context", values_to = "frequency") %>% 
+  separate(context, into = c("group_type", "action_type", "other"), sep = "_") %>% 
+  dplyr::select(group_type, action_type, frequency) %>% 
+  mutate(frequency = factor(case_when(frequency == 0 ~ "Never",
+                                      frequency == 0.25 ~ "A couple of times per semester",
+                                      frequency == 0.5 ~ "A couple of times per week",
+                                      frequency == 1 ~ "Daily", 
+                                      frequency == 2 ~ "Multiple times per day"), 
+                            levels = c("Multiple times per day", "Daily","A couple of times per week","A couple of times per semester" ,"Never")),
+         group_type = factor(case_when(group_type == "formal"~ "Formal AIMGs",
+                                group_type == "class"~ "Class AIMGs",
+                                group_type == "study" ~ "Study AIMGs"), 
+                             levels = c("Study AIMGs", "Class AIMGs", "Formal AIMGs")),
+         action_type = factor(case_when(action_type == "read"~ "Read",
+                                action_type == "post"~ "Post",
+                                action_type == "share" ~ "Share"), 
+                             levels = c("Read", "Post", "Share"))) %>% 
+  group_by(group_type, action_type, frequency) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(fill=factor(frequency), y=count, x=group_type)) + 
+    geom_bar(position="dodge", stat="identity") +
+  scale_fill_brewer(palette = "Blues")+
+  labs(fill = "Frequency", x = "AIMG Type", y = "Count", title="Participation frequency by action type and group type")+
+  scale_y_continuous(expand = expansion(mult = c(0, .1)))+
+  theme_minimal() + coord_flip()+
+  theme(axis.line = element_line(colour = "black"),
+        axis.text.y = element_text(size = 10),
+        legend.position = "bottom") + guides(fill=guide_legend(nrow=2,byrow=TRUE, reverse = TRUE)) +
+  facet_wrap(~action_type)
+
+use_frequency_figure
+
+ggsave((filename="Figures/use_frequency_figure.pdf"), scale = 1, width = 10, height=5, dpi = 600, limitsize = TRUE, use_frequency_figure)
+```
+# Visualise overall participation
+
+```{r}
+raw_data %>% 
+  dplyr::select(class_overall_participation, formal_overall_participation, study_overall_participation) %>% 
+  pivot_longer(cols = c(class_overall_participation, formal_overall_participation, study_overall_participation), names_to = "group_type", values_to = "overall_participation") %>% 
+  mutate(group_type = factor(case_when(group_type == "study_overall_participation"~ "Study AIMGs",
+                                group_type == "formal_overall_participation" ~ "Formal AIMGs",
+                                group_type == "class_overall_participation" ~ "Class AIMGs"), levels = c("Study AIMGs", "Class AIMGs", "Formal AIMGs"))) %>% 
+  ggplot(aes(y = overall_participation, x = group_type, fill=group_type)) +
+  geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .8) +
+  geom_point(aes(y = overall_participation, color = group_type), position = position_jitter(width = .15), size = .5, alpha = 0.8) + 
+  geom_boxplot(width = .1, guides = FALSE, outlier.shape = NA, alpha = 0.5) +
+expand_limits(x = 3) + 
+  guides(fill = FALSE) +
+  labs(x = "Group Type", y = "Level of participation", title = "Participation in the three types of AIMGs")+
+  guides(color=FALSE)+
+  coord_flip() +
+theme_bw() 
+
+
+#ggsave((filename="figures/usage_raincloud_plot.pdf"), scale = 1, width = 10, height=5, dpi = 600, limitsize = TRUE, raincloud_plot)
+```
+
+
+
+Make raincloud for 3 groups for overall
+
+Visualise for purposes and motivations
+
+3 bars per item, 2 
+stacked bar graph
+Q1 formal, class, study
+Q2 formal, class, study
+
 
 # Use purposes and motivations
 
@@ -448,15 +642,6 @@ raw_data_purposes %>% group_by(group_type, communicate_administrative) %>%
   mutate(freq = n / sum(n))
 ```
 
-## Export clean data
-
-Export dataset as csv and .rds
-```{r}
-saveRDS(raw_data, "Clean_Data/clean_data.rds")
-write_csv(raw_data, "Clean_Data/clean_data.csv")
-
-#rm(raw_data)
-```
 
 # Data Analysis 
 
