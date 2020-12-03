@@ -7,7 +7,7 @@ output: html_notebook
 ```{r setup, message=FALSE, warning=FALSE}
 rm(list = ls())
 options(contrasts = c("contr.sum","contr.poly"), scipen = 12)
-set.seed(42)
+set.seed(45)
 
 if (!require("pacman")) install.packages("pacman"); 
 library(pacman)
@@ -22,7 +22,7 @@ The power analysis will be based on the primary statistical anlaysis conducted i
 R2 = 0.05 # specify as needed
 f2 <- R2/(1-R2)
 
-lm_power <- pwr.f2.test(u = 22, #specify as needed (this indicates 3 continuous coefficients)
+lm_power <- pwr.f2.test(u = 22,
             f2 =f2,
             v = NULL,
             sig.level = 0.05,
